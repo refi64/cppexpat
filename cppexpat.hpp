@@ -23,15 +23,39 @@ THE SOFTWARE.
 */
 
 #include <functional>
+#include <exception>
 #include <fstream>
 #include <expat.h>
 #include <utility>
 #include <cstring>
+#include <sstream>
 #include <string>
 #include <map>
 
 namespace CppExpat
 {
+    class XMLError: public std::exception
+    {
+    public:
+        XMLError(XML_Parser p)
+        {
+            XML_Error err = XML_GetErrorCode(p);
+            this->msg = XML_ErrorString(err);
+            this->lineno = XML_GetCurrentLineNumber(p);
+            this->colno = XML_GetCurrentColumnNumber(p);
+        }
+        virtual const char* what() const throw()
+        {
+            std::stringstream ss;
+            ss << this->msg << " at line " << this->lineno << ", column " << this->colno;
+            return ss.str().c_str();
+        }
+    private:
+        XML_Size lineno;
+        XML_Size colno;
+        std::string msg;
+    };
+    
     using ElementAttr = std::map<std::string, std::string>;
     constexpr int bufsize = 10240;
     
@@ -49,7 +73,7 @@ namespace CppExpat
         //! Called when character data is encountered.
         virtual void chardata(std::string data) {}
         //! Parse a file stream.
-        void parse(std::ifstream f, int sz);
+        void parse(std::ifstream& f, int sz);
         //! Parse a string.
         void parse(std::string s);
     private:
@@ -86,27 +110,29 @@ namespace CppExpat
         (static_cast<ParserBase*>(userdata))->chardata(res);
     }
     
-    void ParserBase::parse(std::ifstream f, int sz=bufsize)
+    void ParserBase::parse(std::ifstream& f, int sz=bufsize)
     {
+        XML_Status s;
         char* buf;
         buf = static_cast<char*>(XML_GetBuffer(p, sz));
+        if (!buf) throw std::bad_alloc{};
         f.read(buf, sz);
+        if (f.eof()) return;
         for (;;)
         {
-            XML_ParseBuffer(p, f.gcount(), f.gcount() == 0);
-            buf = static_cast<char*>(XML_GetBuffer(p, sz));
+            s = XML_ParseBuffer(this->p, f.gcount(), f.gcount() == 0);
+            if (!s) throw XMLError(this->p);
+            buf = static_cast<char*>(XML_GetBuffer(this->p, sz));
+            if (!buf) throw std::bad_alloc{};
             f.read(buf, sz);
-            if (f.eof())
-            {
-                delete buf;
-                break;
-            }
+            if (f.eof()) break;
         }
     }
     
     void ParserBase::parse(std::string s)
     {
-        XML_Parse(p, s.c_str(), s.length(), true);
+        XML_Status st = XML_Parse(this->p, s.c_str(), s.length(), true);
+        if (!st) throw XMLError(this->p);
     }
     
     ElementAttr ParserBase::build_attr(const char** attr)
@@ -141,9 +167,9 @@ namespace CppExpat
         void end(std::string s) { this->endF(s); }
         void chardata(std::string s) { this->cdataF(s); }
     private:
-        startCallback startF;
-        endCallback endF;
-        cdataCallback cdataF;
+        startCallback startF{[](std::string, ElementAttr){}};
+        endCallback endF{[](std::string){}};
+        cdataCallback cdataF{[](std::string){}};
     };
     
     inline void XMLParser::setStartElementHandler(startCallback start)
