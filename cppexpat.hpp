@@ -72,6 +72,8 @@ namespace CppExpat
         virtual void end(std::string name) {}
         //! Called when character data is encountered.
         virtual void chardata(std::string data) {}
+        //! Called for processing instructions.
+        virtual void pinstr(std::string target, std::string data) {}
         //! Parse a file stream.
         void parse(std::ifstream& f, int sz);
         //! Parse a string.
@@ -80,6 +82,7 @@ namespace CppExpat
         static void startElement(void* userdata, const char* name, const char** attr);
         static void endElement(void* userdata, const char* name);
         static void cData(void* userdata, const char* data, int len);
+        static void processingInstr(void* userdata, const char* target, const char* data);
         static ElementAttr build_attr(const char** attr);
         XML_Parser p;
     };
@@ -88,6 +91,7 @@ namespace CppExpat
     {
         XML_SetElementHandler(p, this->startElement, this->endElement);
         XML_SetCharacterDataHandler(p, this->cData);
+        XML_SetProcessingInstructionHandler(p, this->processingInstr);
         XML_SetUserData(p, static_cast<void*>(this));
     }
     
@@ -110,21 +114,23 @@ namespace CppExpat
         (static_cast<ParserBase*>(userdata))->chardata(res);
     }
     
+    void ParserBase::processingInstr(void* userdata, const char* target, const char* data)
+    {
+        (static_cast<ParserBase*>(userdata))->pinstr(target, data);
+    }
+    
     void ParserBase::parse(std::ifstream& f, int sz=bufsize)
     {
         XML_Status s;
         char* buf;
-        buf = static_cast<char*>(XML_GetBuffer(p, sz));
-        if (!buf) throw std::bad_alloc{};
-        f.read(buf, sz);
         if (f.eof()) return;
         for (;;)
         {
-            s = XML_ParseBuffer(this->p, f.gcount(), f.gcount() == 0);
-            if (!s) throw XMLError(this->p);
             buf = static_cast<char*>(XML_GetBuffer(this->p, sz));
             if (!buf) throw std::bad_alloc{};
             f.read(buf, sz);
+            s = XML_ParseBuffer(this->p, f.gcount(), f.eof());
+            if (!s) throw XMLError(this->p);
             if (f.eof()) break;
         }
     }
@@ -151,25 +157,31 @@ namespace CppExpat
     using endCallback = endCallbackType;
     using cdataCallbackType = std::function<void(std::string)>;
     using cdataCallback = cdataCallbackType;
+    using pinstrCallbackType = std::function<void(std::string,std::string)>;
+    using pinstrCallback = pinstrCallbackType;
     
     //! A pre-made XML parser class that takes callback functions.
     class XMLParser : public ParserBase
     {
     public:
         XMLParser() {}
-        //! Set the start element handler(should be (void)(std::string, ElementAttr).
+        //! Set the start element handler(should be (void)(std::string, ElementAttr)).
         inline void setStartElementHandler(startCallback);
-        //! Set the end element handler(should be (void)(std::string).
+        //! Set the end element handler(should be (void)(std::string)).
         inline void setEndElementHandler(endCallback);
-        //! Set the character data handler(should be (void)(std::string).
+        //! Set the character data handler(should be (void)(std::string)).
         inline void setCDataHandler(cdataCallback);
+        //! Set the processing instruction handler(should be (void)(std::string,std::string))
+        inline void setPInstrHandler(pinstrCallback);
         void start(std::string s, ElementAttr attr) { this->startF(s,attr); }
         void end(std::string s) { this->endF(s); }
         void chardata(std::string s) { this->cdataF(s); }
+        void pinstr(std::string target, std::string data) { this->pInstrF(target, data); }
     private:
         startCallback startF{[](std::string, ElementAttr){}};
         endCallback endF{[](std::string){}};
         cdataCallback cdataF{[](std::string){}};
+        pinstrCallback pInstrF{[](std::string,std::string){}};
     };
     
     inline void XMLParser::setStartElementHandler(startCallback start)
@@ -184,6 +196,10 @@ namespace CppExpat
     inline void XMLParser::setCDataHandler(cdataCallback cdata)
     {
         this->cdataF = cdata;
+    }
+    inline void XMLParser::setPInstrHandler(pinstrCallback pinstr)
+    {
+        this->pInstrF = pinstr;
     }
 }
 
