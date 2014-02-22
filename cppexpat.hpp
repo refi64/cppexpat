@@ -24,12 +24,13 @@ THE SOFTWARE.
 
 #include <functional>
 #include <exception>
-#include <fstream>
+#include <istream>
 #include <expat.h>
 #include <utility>
 #include <cstring>
 #include <sstream>
 #include <string>
+#include <memory>
 #include <map>
 
 namespace CppExpat
@@ -74,8 +75,8 @@ namespace CppExpat
         virtual void chardata(std::string data) {}
         //! Called for processing instructions.
         virtual void pinstr(std::string target, std::string data) {}
-        //! Parse a file stream.
-        void parse(std::ifstream& f, int sz);
+        //! Parse an input stream.
+        void parse(std::istream& f, int sz);
         //! Parse a string.
         void parse(std::string s);
     private:
@@ -119,19 +120,17 @@ namespace CppExpat
         (static_cast<ParserBase*>(userdata))->pinstr(target, data);
     }
     
-    void ParserBase::parse(std::ifstream& f, int sz=bufsize)
+    void ParserBase::parse(std::istream& in, int sz=bufsize)
     {
         XML_Status s;
-        char* buf;
-        if (f.eof()) return;
+        std::unique_ptr<char[]> buf{new char[sz]};
+        if (in.eof()) return;
         for (;;)
         {
-            buf = static_cast<char*>(XML_GetBuffer(this->p, sz));
-            if (!buf) throw std::bad_alloc{};
-            f.read(buf, sz);
-            s = XML_ParseBuffer(this->p, f.gcount(), f.eof());
+            in.read(buf.get(), sz);
+            s = XML_Parse(this->p, buf.get(), in.gcount(), in.eof());
             if (!s) throw XMLError(this->p);
-            if (f.eof()) break;
+            if (in.eof()) break;
         }
     }
     
