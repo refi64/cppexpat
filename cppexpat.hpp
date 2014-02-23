@@ -33,6 +33,8 @@ THE SOFTWARE.
 #include <memory>
 #include <map>
 
+#define TO_PBASE static_cast<ParserBase*>(userdata)
+
 namespace CppExpat
 {
     class XMLError: public std::exception
@@ -98,12 +100,12 @@ namespace CppExpat
     
     void ParserBase::startElement(void* userdata, const char* name, const char** attr)
     {
-        (static_cast<ParserBase*>(userdata))->start(name, ParserBase::build_attr(attr));
+        TO_PBASE->start(name, ParserBase::build_attr(attr));
     }
     
     void ParserBase::endElement(void* userdata, const char* name)
     {
-        (static_cast<ParserBase*>(userdata))->end(name);
+        TO_PBASE->end(name);
     }
     
     void ParserBase::cData(void* userdata, const char* data, int len)
@@ -112,12 +114,12 @@ namespace CppExpat
         char res[len+1];
         strncpy(res, data, len);
         res[len] = '\0';
-        (static_cast<ParserBase*>(userdata))->chardata(res);
+        TO_PBASE->chardata(res);
     }
     
     void ParserBase::processingInstr(void* userdata, const char* target, const char* data)
     {
-        (static_cast<ParserBase*>(userdata))->pinstr(target, data);
+        TO_PBASE->pinstr(target, data);
     }
     
     void ParserBase::parse(std::istream& in, int sz=bufsize)
@@ -201,4 +203,6 @@ namespace CppExpat
         this->pInstrF = pinstr;
     }
 }
+
+#undef TO_PBASE
 
