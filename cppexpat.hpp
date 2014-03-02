@@ -60,7 +60,7 @@ namespace CppExpat
     };
     
     using ElementAttr = std::map<std::string, std::string>;
-    constexpr int bufsize = 10240;
+    constexpr unsigned int bufsize = 10240;
     
     //! The parser base class.
     /*! Create a derived version of this class to implement custom callbacks. */
