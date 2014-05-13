@@ -22,6 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+#ifndef CPPEXPAT_HPP
+#define CPPEXPAT_HPP
+
 #include <functional>
 #include <exception>
 #include <istream>
@@ -58,10 +61,10 @@ namespace CppExpat
         XML_Size colno;
         std::string msg;
     };
-    
+
     using ElementAttr = std::map<std::string, std::string>;
     constexpr unsigned int bufsize = 10240;
-    
+
     //! The parser base class.
     /*! Create a derived version of this class to implement custom callbacks. */
     class ParserBase
@@ -89,7 +92,7 @@ namespace CppExpat
         static ElementAttr build_attr(const char** attr);
         XML_Parser p;
     };
-    
+
     ParserBase::ParserBase(): p(XML_ParserCreate(NULL))
     {
         XML_SetElementHandler(p, this->startElement, this->endElement);
@@ -97,17 +100,17 @@ namespace CppExpat
         XML_SetProcessingInstructionHandler(p, this->processingInstr);
         XML_SetUserData(p, static_cast<void*>(this));
     }
-    
+
     void ParserBase::startElement(void* userdata, const char* name, const char** attr)
     {
         TO_PBASE->start(name, ParserBase::build_attr(attr));
     }
-    
+
     void ParserBase::endElement(void* userdata, const char* name)
     {
         TO_PBASE->end(name);
     }
-    
+
     void ParserBase::cData(void* userdata, const char* data, int len)
     {
         // Add the null terminator
@@ -116,12 +119,12 @@ namespace CppExpat
         res[len] = '\0';
         TO_PBASE->chardata(res);
     }
-    
+
     void ParserBase::processingInstr(void* userdata, const char* target, const char* data)
     {
         TO_PBASE->pinstr(target, data);
     }
-    
+
     void ParserBase::parse(std::istream& in, int sz=bufsize)
     {
         XML_Status s;
@@ -135,13 +138,13 @@ namespace CppExpat
             if (in.eof()) break;
         }
     }
-    
+
     void ParserBase::parse(std::string s)
     {
         XML_Status st = XML_Parse(this->p, s.c_str(), s.length(), true);
         if (!st) throw XMLError(this->p);
     }
-    
+
     ElementAttr ParserBase::build_attr(const char** attr)
     {
         ElementAttr res;
@@ -151,7 +154,7 @@ namespace CppExpat
         }
         return res;
     }
-    
+
     using startCallbackType = std::function<void(std::string,ElementAttr)>;
     using startCallback = startCallbackType;
     using endCallbackType = std::function<void(std::string)>;
@@ -160,7 +163,7 @@ namespace CppExpat
     using cdataCallback = cdataCallbackType;
     using pinstrCallbackType = std::function<void(std::string,std::string)>;
     using pinstrCallback = pinstrCallbackType;
-    
+
     //! A pre-made XML parser class that takes callback functions.
     class XMLParser : public ParserBase
     {
@@ -184,12 +187,12 @@ namespace CppExpat
         cdataCallback cdataF{[](std::string){}};
         pinstrCallback pInstrF{[](std::string,std::string){}};
     };
-    
+
     inline void XMLParser::setStartElementHandler(startCallback start)
     {
         this->startF = start;
     }
-    
+
     inline void XMLParser::setEndElementHandler(endCallback end)
     {
         this->endF = end;
@@ -205,4 +208,4 @@ namespace CppExpat
 }
 
 #undef TO_PBASE
-
+#endif // CPPEXPAT_HPP

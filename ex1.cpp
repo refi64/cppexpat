@@ -27,6 +27,7 @@ class MyDerivedParser : public CppExpat::ParserBase
         std::cout << "character data: " << data << std::endl;
     }
     
+    // This is for processing instructions.
     void pinstr(std::string, std::string) {}
 };
 
