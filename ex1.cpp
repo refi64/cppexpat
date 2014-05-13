@@ -14,19 +14,19 @@ class MyDerivedParser : public CppExpat::ParserBase
     {
         std::cout << "start: " << name << std::endl;
     }
-    
+
     // This is called when an element ends.
     void end(std::string name)
     {
         std::cout << "end: " << name << std::endl;
     }
-    
+
     // This is called for character data.
-    void cdata(std::string data)
+    void chardata(std::string data)
     {
         std::cout << "character data: " << data << std::endl;
     }
-    
+
     // This is for processing instructions.
     void pinstr(std::string, std::string) {}
 };
@@ -37,4 +37,3 @@ int main()
     p.parse("<x><a b=\"c\">abc</a></x>"); // Parse a string
     return 0;
 }
-

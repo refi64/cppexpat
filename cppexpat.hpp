@@ -46,14 +46,14 @@ namespace CppExpat
         XMLError(XML_Parser p)
         {
             XML_Error err = XML_GetErrorCode(p);
-            this->msg = XML_ErrorString(err);
-            this->lineno = XML_GetCurrentLineNumber(p);
-            this->colno = XML_GetCurrentColumnNumber(p);
+            msg = XML_ErrorString(err);
+            lineno = XML_GetCurrentLineNumber(p);
+            colno = XML_GetCurrentColumnNumber(p);
         }
         virtual const char* what() const throw()
         {
             std::stringstream ss;
-            ss << this->msg << " at line " << this->lineno << ", column " << this->colno;
+            ss << msg << " at line " << lineno << ", column " << colno;
             return ss.str().c_str();
         }
     private:
@@ -87,7 +87,7 @@ namespace CppExpat
     private:
         static void startElement(void* userdata, const char* name, const char** attr);
         static void endElement(void* userdata, const char* name);
-        static void cData(void* userdata, const char* data, int len);
+        static void charData(void* userdata, const char* data, int len);
         static void processingInstr(void* userdata, const char* target, const char* data);
         static ElementAttr build_attr(const char** attr);
         XML_Parser p;
@@ -95,9 +95,9 @@ namespace CppExpat
 
     ParserBase::ParserBase(): p(XML_ParserCreate(NULL))
     {
-        XML_SetElementHandler(p, this->startElement, this->endElement);
-        XML_SetCharacterDataHandler(p, this->cData);
-        XML_SetProcessingInstructionHandler(p, this->processingInstr);
+        XML_SetElementHandler(p, startElement, endElement);
+        XML_SetCharacterDataHandler(p, charData);
+        XML_SetProcessingInstructionHandler(p, processingInstr);
         XML_SetUserData(p, static_cast<void*>(this));
     }
 
@@ -111,7 +111,7 @@ namespace CppExpat
         TO_PBASE->end(name);
     }
 
-    void ParserBase::cData(void* userdata, const char* data, int len)
+    void ParserBase::charData(void* userdata, const char* data, int len)
     {
         // Add the null terminator
         char res[len+1];
@@ -133,25 +133,24 @@ namespace CppExpat
         for (;;)
         {
             in.read(buf.get(), sz);
-            s = XML_Parse(this->p, buf.get(), in.gcount(), in.eof());
-            if (!s) throw XMLError(this->p);
+            s = XML_Parse(p, buf.get(), in.gcount(), in.eof());
+            if (!s) throw XMLError(p);
             if (in.eof()) break;
         }
     }
 
     void ParserBase::parse(std::string s)
     {
-        XML_Status st = XML_Parse(this->p, s.c_str(), s.length(), true);
-        if (!st) throw XMLError(this->p);
+        XML_Status st;
+        if (!(st = XML_Parse(p, s.c_str(), s.length(), true)))
+            throw XMLError(p);
     }
 
     ElementAttr ParserBase::build_attr(const char** attr)
     {
         ElementAttr res;
         for (int i=0; attr[i]; i+=2)
-        {
             res[attr[i]] = attr[i+1];
-        }
         return res;
     }
 
@@ -159,8 +158,8 @@ namespace CppExpat
     using startCallback = startCallbackType;
     using endCallbackType = std::function<void(std::string)>;
     using endCallback = endCallbackType;
-    using cdataCallbackType = std::function<void(std::string)>;
-    using cdataCallback = cdataCallbackType;
+    using chardataCallbackType = std::function<void(std::string)>;
+    using chardataCallback = chardataCallbackType;
     using pinstrCallbackType = std::function<void(std::string,std::string)>;
     using pinstrCallback = pinstrCallbackType;
 
@@ -174,17 +173,17 @@ namespace CppExpat
         //! Set the end element handler(should be (void)(std::string)).
         inline void setEndElementHandler(endCallback);
         //! Set the character data handler(should be (void)(std::string)).
-        inline void setCDataHandler(cdataCallback);
+        inline void setCharDataHandler(chardataCallback);
         //! Set the processing instruction handler(should be (void)(std::string,std::string))
         inline void setPInstrHandler(pinstrCallback);
-        void start(std::string s, ElementAttr attr) { this->startF(s,attr); }
-        void end(std::string s) { this->endF(s); }
-        void chardata(std::string s) { this->cdataF(s); }
-        void pinstr(std::string target, std::string data) { this->pInstrF(target, data); }
+        void start(std::string s, ElementAttr attr) { startF(s, attr); }
+        void end(std::string s) { endF(s); }
+        void chardata(std::string s) {chardataF(s); }
+        void pinstr(std::string target, std::string data) { pInstrF(target, data); }
     private:
         startCallback startF{[](std::string, ElementAttr){}};
         endCallback endF{[](std::string){}};
-        cdataCallback cdataF{[](std::string){}};
+        chardataCallback chardataF{[](std::string){}};
         pinstrCallback pInstrF{[](std::string,std::string){}};
     };
 
@@ -197,9 +196,9 @@ namespace CppExpat
     {
         this->endF = end;
     }
-    inline void XMLParser::setCDataHandler(cdataCallback cdata)
+    inline void XMLParser::setCharDataHandler(chardataCallback cdata)
     {
-        this->cdataF = cdata;
+        this->chardataF = cdata;
     }
     inline void XMLParser::setPInstrHandler(pinstrCallback pinstr)
     {

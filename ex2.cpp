@@ -12,9 +12,8 @@ int main()
                              { std::cout << "start: " << s << std::endl; });
     p.setEndElementHandler([=](std::string s)
                            { std::cout << "end: " << s << std::endl; });
-    p.setCDataHandler([=](std::string s)
+    p.setCharDataHandler([=](std::string s)
                       { std::cout << "character data: " << s << std::endl; });
     p.parse("<x><a b=\"c\">abc</a></x>");
     return 0;
 }
-
