@@ -7,4 +7,3 @@ ex1 ex2 : *.cpp cppexpat.hpp
 
 doc : cppexpat.hpp
 	doxygen
-
