@@ -124,12 +124,10 @@ namespace cppexpat {
 
     void ParserBase::parse(std::istream& in, int sz=bufsize) {
         std::unique_ptr<char[]> buf{new char[sz]};
-        if (in.eof()) return;
-        for (;;) {
+        while (!in.eof()) {
             in.read(buf.get(), sz);
             if (!XML_Parse(p, buf.get(), in.gcount(), in.eof()))
                 throw XMLError{p};
-            if (in.eof()) break;
         }
     }
 
