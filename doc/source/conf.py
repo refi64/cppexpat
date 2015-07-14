@@ -31,6 +31,7 @@ import os
 extensions = ['breathe']
 
 breathe_projects_source = {'cppexpat': ('../..', ['cppexpat.hpp'])}
+breathe_doxygen_config_options = {'EXCLUDE_SYMBOLS': 'CPPEXPAT_TO_PBASE'}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
