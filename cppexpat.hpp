@@ -39,6 +39,7 @@ THE SOFTWARE.
 namespace cppexpat {
     using std::string;
 
+    //! An exception thrown when Expat encounters an error.
     class XMLError: public std::exception {
     public:
         inline XMLError(XML_Parser p):
@@ -56,6 +57,7 @@ namespace cppexpat {
         XML_Size lineno, colno;
     };
 
+    //! An alias for an attribute map.
     using ElementAttr = std::map<string, string>;
     constexpr unsigned int bufsize = 10240;
 
