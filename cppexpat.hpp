@@ -167,5 +167,5 @@ namespace cppexpat {
     };
 }
 
-#undef TO_PBASE
+#undef CPPEXPAT_TO_PBASE
 #endif // CPPEXPAT_HPP
