@@ -63,8 +63,15 @@ namespace cppexpat {
     /*! Create a derived version of this class to implement custom callbacks. */
     class ParserBase {
     public:
+        //\cond HIDDEN
         ParserBase();
         ~ParserBase() { XML_ParserFree(p); }
+        //\endcond
+        //! Parse an input stream.
+        void parse(std::istream& f, int sz);
+        //! Parse a string.
+        void parse(string s);
+    protected:
         //! Called when an element starts.
         virtual void start(string name, ElementAttr attr) {}
         //! Called when an element ends.
@@ -73,10 +80,6 @@ namespace cppexpat {
         virtual void chardata(string data) {}
         //! Called for processing instructions.
         virtual void pinstr(string target, string data) {}
-        //! Parse an input stream.
-        void parse(std::istream& f, int sz);
-        //! Parse a string.
-        void parse(string s);
     private:
         static void start_wrapper(void* userdata, const char* name,
             const char** attr);
