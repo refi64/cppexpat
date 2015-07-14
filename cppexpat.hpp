@@ -160,6 +160,7 @@ namespace cppexpat {
         inline void set_chardata_handler(ChardataCallback c) { chardataf = c; }
         //! Set the processing instruction handler.
         inline void set_pinstr_handler(PinstrCallback c) { pinstrf = c; }
+    protected:
         inline void start(string s, ElementAttr attr) { startf(s, attr); }
         inline void end(string s) { endf(s); }
         inline void chardata(string s) {chardataf(s); }
