@@ -43,18 +43,23 @@ namespace cppexpat {
     class XMLError: public std::exception {
     public:
         inline XMLError(XML_Parser p):
-            msg{XML_ErrorString(XML_GetErrorCode(p))},
-            lineno{XML_GetCurrentLineNumber(p)},
-            colno{XML_GetCurrentColumnNumber(p)} {}
+            what_{construct_what(p)}
+        { }
 
         virtual const char* what() const noexcept {
-            std::stringstream ss;
-            ss << msg << " at line " << lineno << ", column " << colno;
-            return ss.str().c_str();
+            return what_.c_str();
         }
     private:
-        string msg;
-        XML_Size lineno, colno;
+        static string construct_what(XML_Parser p) {
+            std::ostringstream ss;
+            ss << XML_ErrorString(XML_GetErrorCode(p))
+                << " at line "
+                << XML_GetCurrentLineNumber(p)
+                << ", column "
+                << XML_GetCurrentColumnNumber(p);
+            return ss.str();
+        }
+        const string what_;
     };
 
     //! An alias for an attribute map.
