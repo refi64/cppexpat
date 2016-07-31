@@ -67,7 +67,7 @@ namespace cppexpat {
     public:
         //\cond HIDDEN
         ParserBase();
-        ~ParserBase() { XML_ParserFree(p); }
+        virtual ~ParserBase() { XML_ParserFree(p); }
         //\endcond
         //! Parse an input stream.
         void parse(std::istream& f, int sz);
